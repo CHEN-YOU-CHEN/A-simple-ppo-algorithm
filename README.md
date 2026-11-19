@@ -1,7 +1,7 @@
 # PPO from Scratch (PyTorch)
 
-用 PyTorch 從零實作 **Proximal Policy Optimization (PPO)**，並在 Gymnasium `CartPole-v1` 上訓練。
-程式碼註解附上每一步對應的公式，適合拿來對照論文學習。
+實作一個簡單的 PPO 演算法 **Proximal Policy Optimization**，並在 Gymnasium `CartPole-v1` 上訓練。
+程式碼註解附上每一步對應的公式，可以用於幫助學習。
 
 <p align="center">
   <img src="assets/cartpole.gif" width="400" alt="訓練好的 PPO agent 玩 CartPole">
@@ -10,8 +10,7 @@
 ## 實作內容
 
 - Actor-Critic 共用網路層（policy head + value head）
-- **GAE (Generalized Advantage Estimation)**，並正確區分 `terminated` 與 `truncated`：
-  被時間上限截斷的那一步會用 `V(s')` bootstrap，真正失敗才把未來價值歸零
+- **GAE (Generalized Advantage Estimation)**
 - Clipped surrogate objective + value loss + entropy bonus
 - Advantage 標準化、梯度裁剪、可選的學習率線性衰減
 - 固定 seed，結果可重現
@@ -39,10 +38,10 @@ pip install -r requirements.txt
 # 訓練（預設 150 輪 × 512 步，CPU 約 1~2 分鐘）
 python train.py
 
-# 調整超參數
+# 手動調整超參數
 python train.py --iterations 300 --clip-eps 0.1 --lam 0.9 --anneal-lr --seed 2
 
-# 評估並開視窗看 agent 玩
+# 評估，看 agent 玩
 python evaluate.py --checkpoint checkpoints/ppo_CartPole-v1_seed1.pt --render
 
 # 錄成 GIF
@@ -65,7 +64,7 @@ python evaluate.py --checkpoint checkpoints/ppo_CartPole-v1_seed1.pt --random
 
 > CartPole-v1 的滿分為 500。每局分數紀錄存在 `results/*.csv`，可以拿來畫學習曲線。
 
-## 核心公式
+## 重點公式
 
 **GAE**
 
