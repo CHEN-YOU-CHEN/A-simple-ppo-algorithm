@@ -12,7 +12,7 @@ import torch.optim as optim
 from ppo import ActorCritic, collect, compute_gae, ppo_update
 
 
-def parse_args():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="使用 PPO 演算法來訓練的 Gymnasium 環境的 cartpole 平衡遊戲")
 
     # 實驗設定
@@ -39,7 +39,7 @@ def parse_args():
     parser.add_argument("--anneal-lr", action="store_true", help="開啟學習率線性衰減")
     parser.add_argument("--min-lr", type=float, default=1e-5, help="學習率衰減的下限")
 
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def set_seed(seed):
@@ -48,9 +48,7 @@ def set_seed(seed):
     torch.manual_seed(seed)
 
 
-def main():
-    # 完整讀入命令列的參數
-    args = parse_args()
+def train(args, on_iteration=None, save=True, verbose=True):
     set_seed(args.seed)
 
     env = gym.make(args.env_id)
@@ -62,10 +60,6 @@ def main():
 
     model = ActorCritic(state_dim, action_dim, args.hidden_dim)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
-
-    # 建立存檔的資料夾，exist_ok=True 表示如果資料夾本來就存在不會報錯
-    os.makedirs(args.save_dir, exist_ok=True)
-    os.makedirs(args.log_dir, exist_ok=True)
 
     run_name = f"ppo_{args.env_id}_seed{args.seed}"
     checkpoint_path = os.path.join(args.save_dir, f"{run_name}.pt")
@@ -104,7 +98,10 @@ def main():
             max_grad_norm=args.max_grad_norm,
         )
 
-        if iteration % 10 == 0 and len(all_scores) > 0:
+        if on_iteration is not None:
+            on_iteration(iteration, global_step, all_scores)
+
+        if verbose and iteration % 10 == 0 and len(all_scores) > 0:
             avg_score = np.mean(all_scores[-10:])
             print(
                 f"Iteration: {iteration:4d} | Steps: {global_step:7d} | "
@@ -112,6 +109,13 @@ def main():
             )
 
     env.close()
+
+    if not save:
+        return all_scores
+
+    # 建立存檔的資料夾，exist_ok=True 表示如果資料夾本來就存在不會報錯
+    os.makedirs(args.save_dir, exist_ok=True)
+    os.makedirs(args.log_dir, exist_ok=True)
 
     # 存模型: 除了權重，也把建網路需要的設定一起存，evaluate.py 才能直接載入
     torch.save(
@@ -135,6 +139,14 @@ def main():
     print(f"\n模型已存到: {checkpoint_path}")
     print(f"訓練紀錄已存到: {log_path}")
     print(f"評估模型: python evaluate.py --checkpoint {checkpoint_path}")
+
+    return all_scores
+
+
+def main():
+    # 完整讀入命令列的參數
+    args = parse_args()
+    train(args)
 
 
 if __name__ == "__main__":
